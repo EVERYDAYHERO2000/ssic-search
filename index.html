@@ -87,7 +87,7 @@
     });
     
     $('.search').keyup(function(e){
-      var val = $(this).val().toLowerCase();
+      var val = $(this).val().toLowerCase().trim();
       var vals = val.split(' ');
       
       var tempResult = [];

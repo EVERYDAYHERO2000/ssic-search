@@ -1,0 +1,207 @@
+<script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-csv/0.71/jquery.csv-0.71.min.js"></script>
+<script>
+  $(function() {
+    var data;
+    
+    $.ajax({
+      type: "GET",
+      url: "data.csv",
+      dataType: "text",
+      success: function(response) {
+        data = $.csv.toArrays(response);
+        
+        data=data.slice(1,data.length - 1);
+        
+        var sections = {},
+        divisions = {},
+        groups = {},
+        classes = {},
+        items = {};
+        
+        for (var i = 0; i < data.length; i++){
+          
+          sections[data[i][0]] = {
+            code : data[i][0],
+            name : data[i][10],
+            type: 'section',
+            children : []
+          }
+          divisions[data[i][1]] = {
+            code : data[i][1],
+            name : data[i][11],
+            type: 'division',
+            parent : sections[data[i][0]],
+            parent_key : data[i][0],
+            children : []
+          }
+          groups[data[i][2]] = {
+            code : data[i][2],
+            name : data[i][12],
+            type: 'group',
+            parent : divisions[data[i][1]],
+            parent_key : data[i][1],
+            children : []
+          }
+          classes[data[i][3]] = {
+            code : data[i][3],
+            name : data[i][13],
+            type : 'class',
+            parent : groups[data[i][2]],
+            parent_key : data[i][2],
+            children : []
+          }
+          items[data[i][4]] = {
+            code : data[i][4],
+            name : data[i][14],
+            type : 'item',
+            parent : classes[data[i][3]],
+            parent_key : data[i][3]
+            
+          }
+          
+        }
+        function pushChild(items, catalog){
+          for(var i in items){
+            catalog[items[i].parent_key].children.push(items[i]);
+          }
+          return catalog;
+        }
+        
+        data = {
+          sections : pushChild(divisions, sections),
+          divisions : pushChild(groups, divisions),
+          groups : pushChild(classes, groups),
+          classes: pushChild(items, classes),
+          items : items
+        }
+        
+        
+        window.data = data;
+        console.log(data);
+        
+        
+        
+      
+      }
+    });
+    
+    $('.search').keyup(function(e){
+      var val = $(this).val().toLowerCase();
+      var vals = val.split(' ');
+      
+      var tempResult = [];
+      
+      if (val.length >= 3){
+        
+        for (var c in data.items){
+          
+          var text = data.items[c].name;
+          var words = text.split(' ');
+
+          var tempItem = {
+            target : data.items[c],
+            weight : 0,
+          }
+          
+          
+          
+          for (var v = 0; v < vals.length; v++){
+            //search val[e] in name 
+            for (var i = 0; i < words.length; i++){
+
+              var targetWord = words[i].toLowerCase();
+
+              if (targetWord.length >= vals[v].length && targetWord.indexOf(vals[v]) + 1){
+                
+                if ( targetWord.length === vals[v].length ) tempItem.weight += 200;
+
+                if( targetWord[0] === vals[v][0] ) tempItem.weight += 100;
+
+                tempItem.weight += (vals[v].length / targetWord.length * 100 > 50) ? 100 : vals[v].length / targetWord.length * 100; 
+
+                if ( words.indexOf(vals[v]) > 0 ){
+                  tempItem.weight += 100 - (words.indexOf(vals[v]) / words.length * 100);
+                }
+                
+              }
+
+            }
+          }
+          
+          if (tempItem.weight > 0) tempResult.push(tempItem);
+        }
+        
+        
+        function compare(a, b) {
+          
+          a = a.weight;
+          b = b.weight;
+
+          let comparison = 0;
+          if (a < b) {
+            comparison = 1;
+          } else if (a > b) {
+            comparison = -1;
+          }
+          return comparison;
+        }
+        
+        tempResult.sort(compare);
+        
+        
+        
+        //console.log(tempResult);
+      }
+      
+      $('.result').html(function(){
+          
+          var html = '';
+          
+          for( var i =0; i < tempResult.length; i++ ){
+            var weight = Math.ceil(tempResult[i].weight * 2) / 2;
+            var v = (weight < 100) ? 'not-valid' : '';
+              html += `<div class="item ${v}">
+                        <div class="item__code">${tempResult[i].target.code}</div> 
+                        <div class="item__result">${tempResult[i].target.name}</div>
+                        <div class="item__weight">${weight}</div>
+                      </div>`;
+            
+          }
+          
+          return html; 
+        
+          
+      });
+      
+      $('.item__result').each(function(i,e){
+        
+        var innerHTML = $(e).text();
+        
+        for (var v = 0; v < vals.length; v++){
+          
+          innerHTML = innerHTML.replace(new RegExp(vals[v],'gi'),"{{$&}}");  
+          
+        }
+        
+        innerHTML = innerHTML.replace(/\{\{/g, '<span>' ).replace(/\}\}/g, '</span>' );
+        
+        $(e).html(innerHTML);
+        
+      });
+      
+      
+    });
+    
+    
+  });
+</script>
+
+  
+<link rel="stylesheet" href="style.css" />
+<div class="app">
+  <div class="header"> 
+  <input class="search" type="text" placeholder="Keywords for Search SSIC code" />
+  </div>
+  <div class="result"></div>
+</div>

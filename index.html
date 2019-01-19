@@ -107,6 +107,8 @@
           
           
           for (var v = 0; v < vals.length; v++){
+            
+            if (vals[v].length > 2){
             //search val[e] in name 
             for (var i = 0; i < words.length; i++){
 
@@ -126,6 +128,7 @@
                 
               }
 
+            }
             }
           }
           
@@ -179,9 +182,9 @@
         var innerHTML = $(e).text();
         
         for (var v = 0; v < vals.length; v++){
-          
-          innerHTML = innerHTML.replace(new RegExp(vals[v],'gi'),"{{$&}}");  
-          
+          if (vals[v].length > 2){
+            innerHTML = innerHTML.replace(new RegExp(vals[v],'gi'),"{{$&}}");  
+          }
         }
         
         innerHTML = innerHTML.replace(/\{\{/g, '<span>' ).replace(/\}\}/g, '</span>' );
